@@ -100,10 +100,11 @@ export default function App() {
   const [actionModal, setActionModal] = useState({
     show: false,
     type: "",
-    product: null,
+    product: null as any,
   });
 
   const [formData, setFormData] = useState({
+    docId: "",
     id: "",
     name: "",
     brand: "",
@@ -113,6 +114,7 @@ export default function App() {
     stock: 0,
     observations: "",
   });
+  
   const [actionData, setActionData] = useState({
     qty: 1,
     user: "",
@@ -149,7 +151,6 @@ export default function App() {
     if (role === "admin") {
       setRole("empleado");
     } else {
-      // AQUÍ SE ELIMINÓ LA SUGERENCIA
       const pin = prompt("Ingrese el PIN de Administrador:");
       if (pin === PIN_ADMIN) {
         setRole("admin");
@@ -178,7 +179,7 @@ export default function App() {
     }
   };
 
-  const handleDelete = async (docId: any) => {
+  const handleAction = async (e: any) => {
     e.preventDefault();
 
     if (actionData.user.trim() === "") {
@@ -312,6 +313,7 @@ export default function App() {
           <button
             onClick={() => {
               setFormData({
+                docId: "",
                 id: "",
                 name: "",
                 brand: "",
@@ -398,7 +400,17 @@ export default function App() {
               <div className="mt-2 flex gap-2">
                 <button
                   onClick={() => {
-                    setFormData(p);
+                    setFormData({
+                      docId: p.docId || "",
+                      id: p.id || "",
+                      name: p.name || "",
+                      brand: p.brand || "",
+                      model: p.model || "",
+                      serial: p.serial || "",
+                      location: p.location || "",
+                      stock: p.stock || 0,
+                      observations: p.observations || "",
+                    });
                     setShowModal(true);
                   }}
                   className="flex-1 text-blue-600 border border-blue-200 py-1 rounded text-sm hover:bg-blue-50"
@@ -444,7 +456,7 @@ export default function App() {
                   className="w-full border p-2 rounded"
                   value={actionData.qty}
                   onChange={(e) =>
-                    setActionData({ ...actionData, qty: e.target.value })
+                    setActionData({ ...actionData, qty: Number(e.target.value) })
                   }
                 />
               </div>
@@ -481,7 +493,7 @@ export default function App() {
               <div className="flex gap-2 mt-4">
                 <button
                   type="button"
-                  onClick={() => setActionModal({ show: false })}
+                  onClick={() => setActionModal({ show: false, type: "", product: null as any })}
                   className="flex-1 bg-gray-200 p-2 rounded"
                 >
                   Cancelar
@@ -607,7 +619,7 @@ export default function App() {
                   className="border p-2 rounded"
                   value={formData.stock}
                   onChange={(e) =>
-                    setFormData({ ...formData, stock: e.target.value })
+                    setFormData({ ...formData, stock: Number(e.target.value) })
                   }
                 />
               </div>
