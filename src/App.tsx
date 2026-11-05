@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import QRCode from "react-qr-code";
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -56,7 +57,6 @@ export default function App() {
   const [showModal, setShowModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   
-  // --- ESTADOS DEL ESCÁNER ---
   const scannerRef = useRef<any>(null);
   const [scannerMode, setScannerMode] = useState<"search" | "serial" | null>(null);
 
@@ -76,6 +76,7 @@ export default function App() {
     location: "",
     stock: 0,
     observations: "",
+    image: "",
   });
   
   const [actionData, setActionData] = useState({
@@ -86,7 +87,30 @@ export default function App() {
 
   const PIN_ADMIN = "1234";
 
-  // --- EFECTO DE CÁMARA ---
+  const handleImageChange = (e: any) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event: any) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const MAX_WIDTH = 300;
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        setFormData((prev: any) => ({ ...prev, image: compressedBase64 }));
+      };
+    };
+  };
+
   useEffect(() => {
     if (scannerMode) {
       const timer = setTimeout(() => {
@@ -98,7 +122,6 @@ export default function App() {
         scannerRef.current = scanner;
         scanner.render(
           (decodedText) => {
-            // Cuando lee un código con éxito
             if (scannerMode === "search") {
               setSearch(decodedText);
             } else if (scannerMode === "serial") {
@@ -106,9 +129,7 @@ export default function App() {
             }
             setScannerMode(null);
           },
-          (err) => {
-            // Ignorar errores de lectura continua
-          }
+          (err) => {}
         );
       }, 150);
 
@@ -214,6 +235,84 @@ export default function App() {
     setActionData({ qty: 1, user: "", reason: "" });
   };
 
+  // --- GENERADOR DE ETIQUETA TÉRMICA 2x1 ---
+  const printLabel = (p: any) => {
+    const printWindow = window.open("", "_blank", "width=600,height=400");
+    if (!printWindow) return;
+    
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${p.id}`;
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Etiqueta - ${p.id}</title>
+          <style>
+            @page { size: 2in 1in; margin: 0; }
+            body {
+              margin: 0;
+              padding: 0;
+              width: 2in;
+              height: 1in;
+              font-family: Arial, sans-serif;
+              background: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .label-container {
+              width: 100%;
+              height: 100%;
+              display: flex;
+              padding: 4px;
+              box-sizing: border-box;
+            }
+            .qr-section {
+              width: 0.8in;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .qr-section img {
+              width: 100%;
+              height: auto;
+            }
+            .text-section {
+              flex: 1;
+              padding-left: 6px;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              overflow: hidden;
+            }
+            .header { font-size: 7px; font-weight: bold; border-bottom: 1px solid black; margin-bottom: 3px; padding-bottom: 2px; }
+            .title { font-size: 11px; font-weight: bold; margin-bottom: 3px; line-height: 1; max-height: 22px; overflow: hidden; }
+            .detail { font-size: 9px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          </style>
+        </head>
+        <body>
+          <div class="label-container">
+            <div class="qr-section">
+              <img src="${qrUrl}" />
+            </div>
+            <div class="text-section">
+              <div class="header">INVENTARIO MONCADA</div>
+              <div class="title">${p.name}</div>
+              <div class="detail">ID: ${p.id}</div>
+              <div class="detail">Ubic: ${p.location || 'Almacén'}</div>
+            </div>
+          </div>
+          <script>
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 800);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const monthlyMovements = history.filter((m) => {
@@ -302,6 +401,7 @@ export default function App() {
                 location: "",
                 stock: 0,
                 observations: "",
+                image: "",
               });
               setShowModal(true);
             }}
@@ -321,8 +421,8 @@ export default function App() {
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredProducts.map((p) => (
           <div key={p.id} className="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="flex justify-between items-start gap-3">
+              <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-800">{p.name}</h3>
                 <p className="text-xs text-gray-400 mb-2">{p.id}</p>
                 <div className="text-sm text-gray-600 space-y-1">
@@ -336,6 +436,28 @@ export default function App() {
                       {p.stock} piezas
                     </span>
                   </p>
+                </div>
+              </div>
+              
+              {/* --- AQUÍ SE MUESTRAN LA FOTO, EL QR Y EL BOTÓN DE IMPRIMIR --- */}
+              <div className="flex gap-2">
+                {p.image && (
+                  <img 
+                    src={p.image} 
+                    alt={p.name} 
+                    className="w-24 h-24 object-cover rounded-lg border shadow-sm"
+                  />
+                )}
+                <div className="flex flex-col items-center bg-gray-50 p-2 rounded-lg border shadow-sm">
+                  <QRCode value={p.id} size={70} />
+                  {role === "admin" && (
+                    <button
+                      onClick={() => printLabel(p)}
+                      className="mt-2 bg-gray-800 text-white text-[10px] font-bold py-1 px-2 rounded w-full hover:bg-gray-900 transition-colors"
+                    >
+                      🖨️ Etiqueta
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -369,6 +491,7 @@ export default function App() {
                       location: p.location || "",
                       stock: p.stock || 0,
                       observations: p.observations || "",
+                      image: p.image || "", 
                     });
                     setShowModal(true);
                   }}
@@ -388,16 +511,13 @@ export default function App() {
         ))}
       </div>
 
-      {/* --- MODAL DE CÁMARA (NUEVO) --- */}
       {scannerMode && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-[60]">
           <div className="bg-white p-4 rounded-xl w-full max-w-md flex flex-col items-center shadow-2xl">
             <h2 className="text-xl font-bold mb-4 text-center text-gray-800">
               {scannerMode === "search" ? "Enfoca el código del producto" : "Enfoca la serie original"}
             </h2>
-            
             <div id="reader" className="w-full bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300"></div>
-            
             <button
               onClick={() => setScannerMode(null)}
               className="mt-6 w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors shadow"
@@ -408,7 +528,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- MODALES RESTANTES --- */}
       {actionModal.show && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md">
@@ -501,7 +620,22 @@ export default function App() {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">{formData.docId ? "Editar Producto" : "Nuevo Producto"}</h2>
+            
             <form onSubmit={handleSaveProduct} className="space-y-3">
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Foto del Producto (Opcional)</label>
+                {formData.image && (
+                  <img src={formData.image} alt="Vista previa" className="w-full h-32 object-contain bg-gray-50 rounded-lg mb-2 border border-gray-200" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                  onChange={handleImageChange}
+                />
+              </div>
+
               <input
                 type="text"
                 placeholder="Nombre (Ej. Espuma limpiadora)"
@@ -526,8 +660,6 @@ export default function App() {
                   onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 />
               </div>
-              
-              {/* --- AQUÍ ESTÁ EL CAMBIO PARA ESCANEAR EL NÚMERO DE SERIE --- */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex gap-1">
                   <input
@@ -555,7 +687,6 @@ export default function App() {
                   onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
                 />
               </div>
-              
               <input
                 type="text"
                 placeholder="Ubicación (Ej. Estante A2)"
