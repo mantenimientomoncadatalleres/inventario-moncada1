@@ -89,8 +89,8 @@ const QRIcon = () => (
 );
 
 export default function App() {
-  const [products, setProducts] = useState([]);
-  const [history, setHistory] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("empleado");
   const [showModal, setShowModal] = useState(false);
