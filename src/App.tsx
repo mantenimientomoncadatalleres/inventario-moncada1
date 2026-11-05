@@ -341,15 +341,23 @@ export default function App() {
     a.click();
   };
 
-  // --- FILTRO INTELIGENTE ACTUALIZADO ---
-  const filteredProducts = products.filter(
-    (p) =>
-      (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.serial || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.id || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.brand || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.location || "").toLowerCase().includes(search.toLowerCase())
-  );
+  // --- SÚPER FILTRO INVENCIBLE ---
+  const normalizeText = (text: any) => 
+    (text || "").toString().toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const searchTerms = normalizeText(search).split(" ").filter(Boolean);
+
+  const filteredProducts = products.filter((p) => {
+    if (searchTerms.length === 0) return true;
+    
+    // Combina TODO el producto en un solo texto gigante para que el buscador encuentre cualquier cosa
+    const productDataCombined = normalizeText(
+      `${p.name} ${p.id} ${p.brand} ${p.model} ${p.serial} ${p.location} ${p.observations}`
+    );
+
+    // Asegura que todas las palabras que escribas estén en algún lugar del texto del producto
+    return searchTerms.every(term => productDataCombined.includes(term));
+  });
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 font-sans">
@@ -373,7 +381,6 @@ export default function App() {
 
       <div className="max-w-4xl mx-auto mb-6 flex flex-wrap gap-2">
         <div className="flex-1 flex gap-2">
-          {/* --- PLACEHOLDER DE LA BARRA ACTUALIZADO --- */}
           <input
             type="text"
             placeholder="Buscar producto, marca, serie, ubicación o ID..."
@@ -605,4 +612,122 @@ export default function App() {
               </div>
               <div className="bg-orange-100 p-4 rounded-lg text-center border border-orange-200">
                 <p className="text-sm text-orange-700 font-bold uppercase">Total Salidas</p>
-                <p className="text-3xl font-black text-orange-600">-{totalSalidas
+                <p className="text-3xl font-black text-orange-600">-{totalSalidas}</p>
+              </div>
+            </div>
+            <button
+              onClick={exportMonthlyReport}
+              className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg shadow hover:bg-purple-700 transition-colors"
+            >
+              Descargar Excel (CSV)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{formData.docId ? "Editar Producto" : "Nuevo Producto"}</h2>
+            
+            <form onSubmit={handleSaveProduct} className="space-y-3">
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Foto del Producto (Opcional)</label>
+                {formData.image && (
+                  <img src={formData.image} alt="Vista previa" className="w-full h-32 object-contain bg-gray-50 rounded-lg mb-2 border border-gray-200" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                  onChange={handleImageChange}
+                />
+              </div>
+
+              <input
+                type="text"
+                placeholder="Nombre (Ej. Espuma limpiadora)"
+                required
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Marca"
+                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={formData.brand}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Modelo"
+                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={formData.model}
+                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    placeholder="No. Serie original"
+                    className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={formData.serial}
+                    onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setScannerMode("serial")}
+                    className="bg-gray-800 text-white px-3 rounded hover:bg-gray-900 transition-colors"
+                    title="Escanear Código de Barras"
+                  >
+                    <QRIcon />
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  placeholder="Stock Inicial"
+                  required
+                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Ubicación (Ej. Estante A2)"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              />
+              <textarea
+                placeholder="Observaciones"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                value={formData.observations}
+                onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+              />
+              <div className="flex gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 bg-gray-200 p-2 rounded font-bold hover:bg-gray-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition-colors shadow"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
