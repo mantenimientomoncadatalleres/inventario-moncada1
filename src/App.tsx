@@ -88,7 +88,7 @@ export default function App() {
   const PIN_ADMIN = "1234";
 
   const handleImageChange = (e: any) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     
     const reader = new FileReader();
@@ -129,7 +129,9 @@ export default function App() {
             }
             setScannerMode(null);
           },
-          (err) => {}
+          () => {
+             // Se ignora intencionalmente para evitar advertencias de variables no usadas
+          }
         );
       }, 150);
 
@@ -138,7 +140,9 @@ export default function App() {
         if (scannerRef.current) {
           try {
             scannerRef.current.clear();
-          } catch (e) {}
+          } catch (error) {
+            console.error(error);
+          }
         }
       };
     }
@@ -345,7 +349,7 @@ export default function App() {
   const normalizeText = (text: any) => 
     (text || "").toString().toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  const searchTerms = normalizeText(search).split(" ").filter(Boolean);
+  const searchTerms = normalizeText(search).split(" ").filter((t: string) => t.length > 0);
 
   const filteredProducts = products.filter((p) => {
     if (searchTerms.length === 0) return true;
@@ -356,7 +360,7 @@ export default function App() {
     );
 
     // Asegura que todas las palabras que escribas estén en algún lugar del texto del producto
-    return searchTerms.every(term => productDataCombined.includes(term));
+    return searchTerms.every((term: string) => productDataCombined.includes(term));
   });
 
   return (
