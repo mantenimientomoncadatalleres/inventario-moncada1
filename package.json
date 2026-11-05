@@ -8,14 +8,11 @@
     "starter"
   ],
   "main": "src/index.tsx",
-  "dependencies": {
-    "loader-utils": "3.2.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-scripts": "5.0.1",
-    "firebase": "13.1.0",
-    "html5-qrcode": "2.3.8"
-  },
+ "dependencies": {
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "html5-qrcode": "^2.3.8"
+},
   "devDependencies": {
     "@types/react": "18.2.38",
     "@types/react-dom": "18.2.15",
