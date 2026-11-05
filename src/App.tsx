@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -8,7 +9,6 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-  serverTimestamp,
   query,
   orderBy,
 } from "firebase/firestore";
@@ -28,63 +28,23 @@ const db = getFirestore(app);
 
 // --- ÍCONOS SVG ---
 const LockIcon = () => (
-  <svg
-    className="w-6 h-6"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-    />
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
   </svg>
 );
 const UnlockIcon = () => (
-  <svg
-    className="w-6 h-6"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
-    />
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
   </svg>
 );
 const ChartIcon = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-    />
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
   </svg>
 );
 const QRIcon = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-    />
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
   </svg>
 );
 
@@ -94,9 +54,12 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("empleado");
   const [showModal, setShowModal] = useState(false);
-  const [showMovementsModal, setShowMovementsModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
+  
+  // --- ESTADOS DEL ESCÁNER ---
+  const scannerRef = useRef<any>(null);
+  const [scannerMode, setScannerMode] = useState<"search" | "serial" | null>(null);
+
   const [actionModal, setActionModal] = useState({
     show: false,
     type: "",
@@ -121,8 +84,44 @@ export default function App() {
     reason: "",
   });
 
-  // CONTRASEÑA DE ADMINISTRADOR
   const PIN_ADMIN = "1234";
+
+  // --- EFECTO DE CÁMARA ---
+  useEffect(() => {
+    if (scannerMode) {
+      const timer = setTimeout(() => {
+        const scanner = new Html5QrcodeScanner(
+          "reader",
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          false
+        );
+        scannerRef.current = scanner;
+        scanner.render(
+          (decodedText) => {
+            // Cuando lee un código con éxito
+            if (scannerMode === "search") {
+              setSearch(decodedText);
+            } else if (scannerMode === "serial") {
+              setFormData((prev: any) => ({ ...prev, serial: decodedText }));
+            }
+            setScannerMode(null);
+          },
+          (err) => {
+            // Ignorar errores de lectura continua
+          }
+        );
+      }, 150);
+
+      return () => {
+        clearTimeout(timer);
+        if (scannerRef.current) {
+          try {
+            scannerRef.current.clear();
+          } catch (e) {}
+        }
+      };
+    }
+  }, [scannerMode]);
 
   useEffect(() => {
     const unsubProducts = onSnapshot(
@@ -183,9 +182,7 @@ export default function App() {
     e.preventDefault();
 
     if (actionData.user.trim() === "") {
-      alert(
-        "⚠️ OBLIGATORIO: Debes escribir el nombre del Empleado o Responsable."
-      );
+      alert("⚠️ OBLIGATORIO: Debes escribir el nombre del Empleado o Responsable.");
       return;
     }
     if (actionData.reason.trim() === "") {
@@ -215,13 +212,6 @@ export default function App() {
 
     setActionModal({ show: false, type: "", product: null });
     setActionData({ qty: 1, user: "", reason: "" });
-  };
-
-  const startScanner = () => {
-    const code = prompt(
-      "Simulador de Escáner (Ingresa el ID o Serie del producto):"
-    );
-    if (code) setSearch(code);
   };
 
   const currentMonth = new Date().getMonth();
@@ -264,27 +254,17 @@ export default function App() {
     <div className="min-h-screen bg-gray-100 p-4 font-sans">
       <div className="max-w-4xl mx-auto bg-white p-4 rounded-xl shadow mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Inventario Moncada
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-800">Inventario Moncada</h1>
           <p className="text-sm text-gray-500 uppercase tracking-wide">
             Modo:{" "}
-            <span
-              className={
-                role === "admin"
-                  ? "text-blue-600 font-bold"
-                  : "text-green-600 font-bold"
-              }
-            >
+            <span className={role === "admin" ? "text-blue-600 font-bold" : "text-green-600 font-bold"}>
               {role}
             </span>
           </p>
         </div>
         <button
           onClick={toggleRole}
-          className={`p-2 rounded-full text-white ${
-            role === "admin" ? "bg-blue-600" : "bg-gray-400"
-          }`}
+          className={`p-2 rounded-full text-white ${role === "admin" ? "bg-blue-600" : "bg-gray-400"}`}
         >
           {role === "admin" ? <UnlockIcon /> : <LockIcon />}
         </button>
@@ -295,13 +275,13 @@ export default function App() {
           <input
             type="text"
             placeholder="Buscar producto, serie o ID..."
-            className="w-full border p-3 rounded-lg shadow-sm"
+            className="w-full border p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <button
-            onClick={startScanner}
-            className="bg-gray-800 text-white p-3 rounded-lg flex items-center gap-2"
+            onClick={() => setScannerMode("search")}
+            className="bg-gray-800 text-white p-3 rounded-lg flex items-center gap-2 hover:bg-gray-900 transition-colors"
           >
             <QRIcon /> <span className="hidden sm:inline">Escanear</span>
           </button>
@@ -325,13 +305,13 @@ export default function App() {
               });
               setShowModal(true);
             }}
-            className="bg-blue-600 text-white px-4 py-2 rounded shadow font-bold"
+            className="bg-blue-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-blue-700 transition-colors"
           >
             + Nuevo Producto
           </button>
           <button
             onClick={() => setShowReportModal(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded shadow flex items-center gap-2 font-bold"
+            className="bg-purple-600 text-white px-4 py-2 rounded shadow flex items-center gap-2 font-bold hover:bg-purple-700 transition-colors"
           >
             <ChartIcon /> Reporte del Mes
           </button>
@@ -340,36 +320,19 @@ export default function App() {
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredProducts.map((p) => (
-          <div
-            key={p.id}
-            className="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-500"
-          >
+          <div key={p.id} className="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-gray-800">{p.name}</h3>
                 <p className="text-xs text-gray-400 mb-2">{p.id}</p>
                 <div className="text-sm text-gray-600 space-y-1">
-                  <p>
-                    <b>Marca:</b> {p.brand}
-                  </p>
-                  <p>
-                    <b>Modelo:</b> {p.model}
-                  </p>
-                  <p>
-                    <b>Serie:</b> {p.serial}
-                  </p>
-                  <p>
-                    <b>Ubicación:</b> {p.location}
-                  </p>
+                  <p><b>Marca:</b> {p.brand}</p>
+                  <p><b>Modelo:</b> {p.model}</p>
+                  <p><b>Serie original:</b> {p.serial}</p>
+                  <p><b>Ubicación:</b> {p.location}</p>
                   <p className="text-lg mt-2">
                     <b>Stock:</b>{" "}
-                    <span
-                      className={
-                        p.stock < 5
-                          ? "text-red-500 font-bold"
-                          : "text-green-600 font-bold"
-                      }
-                    >
+                    <span className={p.stock < 5 ? "text-red-500 font-bold" : "text-green-600 font-bold"}>
                       {p.stock} piezas
                     </span>
                   </p>
@@ -379,18 +342,14 @@ export default function App() {
 
             <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
               <button
-                onClick={() =>
-                  setActionModal({ show: true, type: "Entrada", product: p })
-                }
-                className="flex-1 bg-green-100 text-green-700 py-2 rounded font-bold hover:bg-green-200"
+                onClick={() => setActionModal({ show: true, type: "Entrada", product: p })}
+                className="flex-1 bg-green-100 text-green-700 py-2 rounded font-bold hover:bg-green-200 transition-colors"
               >
                 + Entrada
               </button>
               <button
-                onClick={() =>
-                  setActionModal({ show: true, type: "Salida", product: p })
-                }
-                className="flex-1 bg-orange-100 text-orange-700 py-2 rounded font-bold hover:bg-orange-200"
+                onClick={() => setActionModal({ show: true, type: "Salida", product: p })}
+                className="flex-1 bg-orange-100 text-orange-700 py-2 rounded font-bold hover:bg-orange-200 transition-colors"
               >
                 - Salida
               </button>
@@ -413,13 +372,13 @@ export default function App() {
                     });
                     setShowModal(true);
                   }}
-                  className="flex-1 text-blue-600 border border-blue-200 py-1 rounded text-sm hover:bg-blue-50"
+                  className="flex-1 text-blue-600 border border-blue-200 py-1 rounded text-sm hover:bg-blue-50 transition-colors"
                 >
                   Editar
                 </button>
                 <button
                   onClick={() => handleDelete(p.docId)}
-                  className="flex-1 text-red-600 border border-red-200 py-1 rounded text-sm hover:bg-red-50"
+                  className="flex-1 text-red-600 border border-red-200 py-1 rounded text-sm hover:bg-red-50 transition-colors"
                 >
                   Eliminar
                 </button>
@@ -429,82 +388,79 @@ export default function App() {
         ))}
       </div>
 
+      {/* --- MODAL DE CÁMARA (NUEVO) --- */}
+      {scannerMode && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white p-4 rounded-xl w-full max-w-md flex flex-col items-center shadow-2xl">
+            <h2 className="text-xl font-bold mb-4 text-center text-gray-800">
+              {scannerMode === "search" ? "Enfoca el código del producto" : "Enfoca la serie original"}
+            </h2>
+            
+            <div id="reader" className="w-full bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300"></div>
+            
+            <button
+              onClick={() => setScannerMode(null)}
+              className="mt-6 w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors shadow"
+            >
+              Cerrar Cámara
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODALES RESTANTES --- */}
       {actionModal.show && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md">
-            <h2
-              className={`text-xl font-bold mb-4 ${
-                actionModal.type === "Entrada"
-                  ? "text-green-600"
-                  : "text-orange-600"
-              }`}
-            >
+            <h2 className={`text-xl font-bold mb-4 ${actionModal.type === "Entrada" ? "text-green-600" : "text-orange-600"}`}>
               Registrar {actionModal.type}
             </h2>
-            <p className="mb-4 text-gray-600 font-bold">
-              {actionModal.product.name}
-            </p>
+            <p className="mb-4 text-gray-600 font-bold">{actionModal.product.name}</p>
             <form onSubmit={handleAction} className="space-y-3">
               <div>
-                <label className="block text-sm font-bold">
-                  Cantidad <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-bold">Cantidad <span className="text-red-500">*</span></label>
                 <input
                   type="number"
                   min="1"
                   required
-                  className="w-full border p-2 rounded"
+                  className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   value={actionData.qty}
-                  onChange={(e) =>
-                    setActionData({ ...actionData, qty: Number(e.target.value) })
-                  }
+                  onChange={(e) => setActionData({ ...actionData, qty: Number(e.target.value) })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold">
-                  Empleado / Responsable <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-bold">Empleado / Responsable <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="Ej. Juan Pérez"
                   required
-                  className="w-full border p-2 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   value={actionData.user}
-                  onChange={(e) =>
-                    setActionData({ ...actionData, user: e.target.value })
-                  }
+                  onChange={(e) => setActionData({ ...actionData, user: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold">
-                  Motivo / Proyecto <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-bold">Motivo / Proyecto <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="Ej. Instalación en Torre B"
                   required
-                  className="w-full border p-2 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   value={actionData.reason}
-                  onChange={(e) =>
-                    setActionData({ ...actionData, reason: e.target.value })
-                  }
+                  onChange={(e) => setActionData({ ...actionData, reason: e.target.value })}
                 />
               </div>
               <div className="flex gap-2 mt-4">
                 <button
                   type="button"
                   onClick={() => setActionModal({ show: false, type: "", product: null as any })}
-                  className="flex-1 bg-gray-200 p-2 rounded"
+                  className="flex-1 bg-gray-200 p-2 rounded font-bold hover:bg-gray-300"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className={`flex-1 text-white p-2 rounded ${
-                    actionModal.type === "Entrada"
-                      ? "bg-green-600"
-                      : "bg-orange-600"
-                  }`}
+                  className={`flex-1 text-white p-2 rounded font-bold shadow ${actionModal.type === "Entrada" ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}`}
                 >
                   Confirmar
                 </button>
@@ -518,46 +474,22 @@ export default function App() {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-lg">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-purple-700">
-                Resumen del Mes
-              </h2>
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="text-gray-500 font-bold text-xl"
-              >
-                &times;
-              </button>
+              <h2 className="text-xl font-bold text-purple-700">Resumen del Mes</h2>
+              <button onClick={() => setShowReportModal(false)} className="text-gray-500 font-bold text-xl hover:text-gray-800">&times;</button>
             </div>
-
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-green-100 p-4 rounded-lg text-center border border-green-200">
-                <p className="text-sm text-green-700 font-bold uppercase">
-                  Total Entradas
-                </p>
-                <p className="text-3xl font-black text-green-600">
-                  +{totalEntradas}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">piezas ingresadas</p>
+                <p className="text-sm text-green-700 font-bold uppercase">Total Entradas</p>
+                <p className="text-3xl font-black text-green-600">+{totalEntradas}</p>
               </div>
               <div className="bg-orange-100 p-4 rounded-lg text-center border border-orange-200">
-                <p className="text-sm text-orange-700 font-bold uppercase">
-                  Total Salidas
-                </p>
-                <p className="text-3xl font-black text-orange-600">
-                  -{totalSalidas}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">piezas despachadas</p>
+                <p className="text-sm text-orange-700 font-bold uppercase">Total Salidas</p>
+                <p className="text-3xl font-black text-orange-600">-{totalSalidas}</p>
               </div>
             </div>
-
-            <p className="text-sm text-gray-600 mb-4">
-              Se registraron {monthlyMovements.length} movimientos en total
-              durante este mes.
-            </p>
-
             <button
               onClick={exportMonthlyReport}
-              className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg shadow hover:bg-purple-700"
+              className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg shadow hover:bg-purple-700 transition-colors"
             >
               Descargar Excel (CSV)
             </button>
@@ -568,89 +500,86 @@ export default function App() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">
-              {formData.docId ? "Editar Producto" : "Nuevo Producto"}
-            </h2>
+            <h2 className="text-xl font-bold mb-4">{formData.docId ? "Editar Producto" : "Nuevo Producto"}</h2>
             <form onSubmit={handleSaveProduct} className="space-y-3">
               <input
                 type="text"
                 placeholder="Nombre (Ej. Espuma limpiadora)"
                 required
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="text"
                   placeholder="Marca"
-                  className="border p-2 rounded"
+                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   value={formData.brand}
-                  onChange={(e) =>
-                    setFormData({ ...formData, brand: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                 />
                 <input
                   type="text"
                   placeholder="Modelo"
-                  className="border p-2 rounded"
+                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   value={formData.model}
-                  onChange={(e) =>
-                    setFormData({ ...formData, model: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 />
               </div>
+              
+              {/* --- AQUÍ ESTÁ EL CAMBIO PARA ESCANEAR EL NÚMERO DE SERIE --- */}
               <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="No. Serie"
-                  className="border p-2 rounded"
-                  value={formData.serial}
-                  onChange={(e) =>
-                    setFormData({ ...formData, serial: e.target.value })
-                  }
-                />
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    placeholder="No. Serie original"
+                    className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={formData.serial}
+                    onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setScannerMode("serial")}
+                    className="bg-gray-800 text-white px-3 rounded hover:bg-gray-900 transition-colors"
+                    title="Escanear Código de Barras"
+                  >
+                    <QRIcon />
+                  </button>
+                </div>
                 <input
                   type="number"
                   placeholder="Stock Inicial"
                   required
-                  className="border p-2 rounded"
+                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   value={formData.stock}
-                  onChange={(e) =>
-                    setFormData({ ...formData, stock: Number(e.target.value) })
-                  }
+                  onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
                 />
               </div>
+              
               <input
                 type="text"
                 placeholder="Ubicación (Ej. Estante A2)"
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.location}
-                onChange={(e) =>
-                  setFormData({ ...formData, location: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               />
               <textarea
                 placeholder="Observaciones"
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.observations}
-                onChange={(e) =>
-                  setFormData({ ...formData, observations: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
               />
               <div className="flex gap-2 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 bg-gray-200 p-2 rounded"
+                  className="flex-1 bg-gray-200 p-2 rounded font-bold hover:bg-gray-300 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white p-2 rounded"
+                  className="flex-1 bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition-colors shadow"
                 >
                   Guardar
                 </button>
