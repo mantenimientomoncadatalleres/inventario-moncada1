@@ -159,7 +159,7 @@ export default function App() {
     }
   };
 
-  const handleSaveProduct = async (e) => {
+  const handleSaveProduct = async (e: any) => {
     e.preventDefault();
     if (formData.docId) {
       await updateDoc(doc(db, "inventario", formData.docId), formData);
@@ -172,13 +172,13 @@ export default function App() {
     setShowModal(false);
   };
 
-  const handleDelete = async (docId) => {
+  const handleDelete = async (docId: any) => {
     if (window.confirm("¿Estás seguro de eliminar este producto?")) {
       await deleteDoc(doc(db, "inventario", docId));
     }
   };
 
-  const handleAction = async (e) => {
+  const handleDelete = async (docId: any) => {
     e.preventDefault();
 
     if (actionData.user.trim() === "") {
