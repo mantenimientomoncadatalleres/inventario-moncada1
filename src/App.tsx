@@ -48,6 +48,11 @@ const QRIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
   </svg>
 );
+const DocIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
 
 export default function App() {
   const [products, setProducts] = useState<any[]>([]);
@@ -57,6 +62,10 @@ export default function App() {
   const [showModal, setShowModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   
+  // --- NUEVOS ESTADOS PARA LA HOJA DE SALIDA ---
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState("");
+
   const scannerRef = useRef<any>(null);
   const [scannerMode, setScannerMode] = useState<"search" | "serial" | null>(null);
 
@@ -129,9 +138,7 @@ export default function App() {
             }
             setScannerMode(null);
           },
-          () => {
-             // Se ignora intencionalmente para evitar advertencias de variables no usadas
-          }
+          () => {}
         );
       }, 150);
 
@@ -239,6 +246,7 @@ export default function App() {
     setActionData({ qty: 1, user: "", reason: "" });
   };
 
+  // --- ETIQUETA TÉRMICA 2x1 ---
   const printLabel = (p: any) => {
     const printWindow = window.open("", "_blank", "width=600,height=400");
     if (!printWindow) return;
@@ -269,24 +277,9 @@ export default function App() {
               padding: 4px;
               box-sizing: border-box;
             }
-            .qr-section {
-              width: 0.8in;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-            .qr-section img {
-              width: 100%;
-              height: auto;
-            }
-            .text-section {
-              flex: 1;
-              padding-left: 6px;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              overflow: hidden;
-            }
+            .qr-section { width: 0.8in; display: flex; align-items: center; justify-content: center; }
+            .qr-section img { width: 100%; height: auto; }
+            .text-section { flex: 1; padding-left: 6px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
             .header { font-size: 7px; font-weight: bold; border-bottom: 1px solid black; margin-bottom: 3px; padding-bottom: 2px; }
             .title { font-size: 11px; font-weight: bold; margin-bottom: 3px; line-height: 1; max-height: 22px; overflow: hidden; }
             .detail { font-size: 9px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -294,15 +287,87 @@ export default function App() {
         </head>
         <body>
           <div class="label-container">
-            <div class="qr-section">
-              <img src="${qrUrl}" />
-            </div>
+            <div class="qr-section"><img src="${qrUrl}" /></div>
             <div class="text-section">
               <div class="header">INVENTARIO MONCADA</div>
               <div class="title">${p.name}</div>
               <div class="detail">ID: ${p.id}</div>
               <div class="detail">Ubic: ${p.location || 'Almacén'}</div>
             </div>
+          </div>
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 800);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // --- NUEVA FUNCIÓN: HOJA DE SALIDA POR PROYECTO (TAMAÑO CARTA) ---
+  const printProjectSheet = (projectName: string) => {
+    const projectItems = history.filter(
+      (m) => m.type === "Salida" && m.reason.toLowerCase() === projectName.toLowerCase()
+    );
+
+    if (projectItems.length === 0) {
+      alert("No se encontraron salidas para este proyecto.");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=800,height=600");
+    if (!printWindow) return;
+
+    const rows = projectItems.map(m => `
+      <tr>
+        <td style="padding: 10px; border: 1px solid #000; text-align: center;">${new Date(m.date).toLocaleDateString()}</td>
+        <td style="padding: 10px; border: 1px solid #000; font-weight: bold;">${m.productName}</td>
+        <td style="padding: 10px; border: 1px solid #000; text-align: center; font-size: 1.1em; font-weight: bold;">${m.qty}</td>
+        <td style="padding: 10px; border: 1px solid #000; text-align: center;">${m.user}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Hoja de Salida - ${projectName}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
+            .header-container { border-bottom: 3px solid #1e3a8a; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+            h1 { margin: 0; color: #1e3a8a; font-size: 28px; letter-spacing: 2px; }
+            h2 { margin: 10px 0 0 0; color: #4b5563; font-size: 18px; }
+            .info-section { background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 30px; font-size: 16px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 60px; font-size: 14px; }
+            th { background-color: #1e3a8a; color: white; padding: 12px; border: 1px solid #000; text-align: center; }
+            .signatures { display: flex; justify-content: space-between; margin-top: 80px; padding: 0 20px; }
+            .sig-box { width: 40%; text-align: center; border-top: 2px solid #000; padding-top: 10px; font-weight: bold; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-container">
+            <h1>INVENTARIO MONCADA</h1>
+            <h2>HOJA DE RESGUARDO Y SALIDA DE MATERIAL</h2>
+          </div>
+          <div class="info-section">
+            <strong>Proyecto / Motivo:</strong> <span style="text-transform: uppercase;">${projectName}</span><br/>
+            <strong>Fecha de Impresión:</strong> ${new Date().toLocaleDateString()}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 15%;">Fecha de Salida</th>
+                <th style="width: 45%;">Descripción del Producto / Herramienta</th>
+                <th style="width: 15%;">Cantidad</th>
+                <th style="width: 25%;">Responsable</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+          <div class="signatures">
+            <div class="sig-box">ENTREGÓ (Almacén)</div>
+            <div class="sig-box">RECIBIÓ (Responsable del Proyecto)</div>
           </div>
           <script>
             setTimeout(() => {
@@ -333,9 +398,7 @@ export default function App() {
   const exportMonthlyReport = () => {
     let csv = "Fecha,Tipo,Producto,Cantidad,Empleado,Motivo\n";
     monthlyMovements.forEach((m) => {
-      csv += `${new Date(m.date).toLocaleDateString()},${m.type},${
-        m.productName
-      },${m.qty},${m.user},${m.reason}\n`;
+      csv += `${new Date(m.date).toLocaleDateString()},${m.type},${m.productName},${m.qty},${m.user},${m.reason}\n`;
     });
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -345,6 +408,11 @@ export default function App() {
     a.click();
   };
 
+  // Obtener lista de proyectos únicos para el modal de "Hoja de Salida"
+  const uniqueProjects = Array.from(
+    new Set(history.filter(m => m.type === "Salida").map(m => m.reason))
+  ).sort();
+
   // --- SÚPER FILTRO INVENCIBLE ---
   const normalizeText = (text: any) => 
     (text || "").toString().toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -353,13 +421,7 @@ export default function App() {
 
   const filteredProducts = products.filter((p) => {
     if (searchTerms.length === 0) return true;
-    
-    // Combina TODO el producto en un solo texto gigante para que el buscador encuentre cualquier cosa
-    const productDataCombined = normalizeText(
-      `${p.name} ${p.id} ${p.brand} ${p.model} ${p.serial} ${p.location} ${p.observations}`
-    );
-
-    // Asegura que todas las palabras que escribas estén en algún lugar del texto del producto
+    const productDataCombined = normalizeText(`${p.name} ${p.id} ${p.brand} ${p.model} ${p.serial} ${p.location} ${p.observations}`);
     return searchTerms.every((term: string) => productDataCombined.includes(term));
   });
 
@@ -406,26 +468,28 @@ export default function App() {
           <button
             onClick={() => {
               setFormData({
-                docId: "",
-                id: "",
-                name: "",
-                brand: "",
-                model: "",
-                serial: "",
-                location: "",
-                stock: 0,
-                observations: "",
-                image: "",
+                docId: "", id: "", name: "", brand: "", model: "", serial: "", location: "", stock: 0, observations: "", image: "",
               });
               setShowModal(true);
             }}
-            className="bg-blue-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-blue-700 transition-colors"
+            className="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-blue-700 transition-colors text-center"
           >
             + Nuevo Producto
           </button>
+          
+          <button
+            onClick={() => {
+              setSelectedProject("");
+              setShowProjectModal(true);
+            }}
+            className="flex-1 sm:flex-none bg-indigo-600 text-white px-4 py-2 rounded shadow flex items-center justify-center gap-2 font-bold hover:bg-indigo-700 transition-colors"
+          >
+            <DocIcon /> Vale Salida
+          </button>
+
           <button
             onClick={() => setShowReportModal(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded shadow flex items-center gap-2 font-bold hover:bg-purple-700 transition-colors"
+            className="flex-1 sm:flex-none bg-purple-600 text-white px-4 py-2 rounded shadow flex items-center justify-center gap-2 font-bold hover:bg-purple-700 transition-colors"
           >
             <ChartIcon /> Reporte del Mes
           </button>
@@ -455,11 +519,7 @@ export default function App() {
               
               <div className="flex gap-2">
                 {p.image && (
-                  <img 
-                    src={p.image} 
-                    alt={p.name} 
-                    className="w-24 h-24 object-cover rounded-lg border shadow-sm"
-                  />
+                  <img src={p.image} alt={p.name} className="w-24 h-24 object-cover rounded-lg border shadow-sm" />
                 )}
                 <div className="flex flex-col items-center bg-gray-50 p-2 rounded-lg border shadow-sm">
                   <QRCode value={p.id} size={70} />
@@ -495,16 +555,8 @@ export default function App() {
                 <button
                   onClick={() => {
                     setFormData({
-                      docId: p.docId || "",
-                      id: p.id || "",
-                      name: p.name || "",
-                      brand: p.brand || "",
-                      model: p.model || "",
-                      serial: p.serial || "",
-                      location: p.location || "",
-                      stock: p.stock || 0,
-                      observations: p.observations || "",
-                      image: p.image || "", 
+                      docId: p.docId || "", id: p.id || "", name: p.name || "", brand: p.brand || "", model: p.model || "",
+                      serial: p.serial || "", location: p.location || "", stock: p.stock || 0, observations: p.observations || "", image: p.image || "", 
                     });
                     setShowModal(true);
                   }}
@@ -541,6 +593,48 @@ export default function App() {
         </div>
       )}
 
+      {/* --- MODAL PARA GENERAR HOJA DE SALIDA --- */}
+      {showProjectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Generar Vale de Salida</h2>
+              <button onClick={() => setShowProjectModal(false)} className="text-gray-500 font-bold text-2xl hover:text-gray-800">&times;</button>
+            </div>
+            
+            {uniqueProjects.length === 0 ? (
+              <p className="text-gray-600 mb-4">Aún no hay salidas registradas en el sistema para generar un vale.</p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-4">
+                  Selecciona el proyecto para imprimir la hoja membretada con todo el material despachado y los espacios para firma.
+                </p>
+                <select 
+                  className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-6 font-bold text-gray-700"
+                  value={selectedProject}
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                >
+                  <option value="">-- Elige un Proyecto / Motivo --</option>
+                  {uniqueProjects.map(proj => (
+                    <option key={proj as string} value={proj as string}>{proj}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => {
+                    if (!selectedProject) return alert("Por favor, selecciona un proyecto de la lista.");
+                    printProjectSheet(selectedProject);
+                    setShowProjectModal(false);
+                  }}
+                  className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg shadow hover:bg-indigo-700 transition-colors"
+                >
+                  🖨️ Generar Hoja para Imprimir
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {actionModal.show && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md">
@@ -551,51 +645,19 @@ export default function App() {
             <form onSubmit={handleAction} className="space-y-3">
               <div>
                 <label className="block text-sm font-bold">Cantidad <span className="text-red-500">*</span></label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={actionData.qty}
-                  onChange={(e) => setActionData({ ...actionData, qty: Number(e.target.value) })}
-                />
+                <input type="number" min="1" required className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={actionData.qty} onChange={(e) => setActionData({ ...actionData, qty: Number(e.target.value) })} />
               </div>
               <div>
                 <label className="block text-sm font-bold">Empleado / Responsable <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  placeholder="Ej. Juan Pérez"
-                  required
-                  className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={actionData.user}
-                  onChange={(e) => setActionData({ ...actionData, user: e.target.value })}
-                />
+                <input type="text" placeholder="Ej. Juan Pérez" required className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={actionData.user} onChange={(e) => setActionData({ ...actionData, user: e.target.value })} />
               </div>
               <div>
                 <label className="block text-sm font-bold">Motivo / Proyecto <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  placeholder="Ej. Instalación en Torre B"
-                  required
-                  className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={actionData.reason}
-                  onChange={(e) => setActionData({ ...actionData, reason: e.target.value })}
-                />
+                <input type="text" placeholder="Ej. Instalación en Torre B" required className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={actionData.reason} onChange={(e) => setActionData({ ...actionData, reason: e.target.value })} />
               </div>
               <div className="flex gap-2 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setActionModal({ show: false, type: "", product: null as any })}
-                  className="flex-1 bg-gray-200 p-2 rounded font-bold hover:bg-gray-300"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className={`flex-1 text-white p-2 rounded font-bold shadow ${actionModal.type === "Entrada" ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}`}
-                >
-                  Confirmar
-                </button>
+                <button type="button" onClick={() => setActionModal({ show: false, type: "", product: null as any })} className="flex-1 bg-gray-200 p-2 rounded font-bold hover:bg-gray-300">Cancelar</button>
+                <button type="submit" className={`flex-1 text-white p-2 rounded font-bold shadow ${actionModal.type === "Entrada" ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}`}>Confirmar</button>
               </div>
             </form>
           </div>
@@ -619,12 +681,7 @@ export default function App() {
                 <p className="text-3xl font-black text-orange-600">-{totalSalidas}</p>
               </div>
             </div>
-            <button
-              onClick={exportMonthlyReport}
-              className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg shadow hover:bg-purple-700 transition-colors"
-            >
-              Descargar Excel (CSV)
-            </button>
+            <button onClick={exportMonthlyReport} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg shadow hover:bg-purple-700 transition-colors">Descargar Excel (CSV)</button>
           </div>
         </div>
       )}
@@ -637,96 +694,26 @@ export default function App() {
             <form onSubmit={handleSaveProduct} className="space-y-3">
               <div className="mb-4">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Foto del Producto (Opcional)</label>
-                {formData.image && (
-                  <img src={formData.image} alt="Vista previa" className="w-full h-32 object-contain bg-gray-50 rounded-lg mb-2 border border-gray-200" />
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                  onChange={handleImageChange}
-                />
+                {formData.image && <img src={formData.image} alt="Vista previa" className="w-full h-32 object-contain bg-gray-50 rounded-lg mb-2 border border-gray-200" />}
+                <input type="file" accept="image/*" capture="environment" className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" onChange={handleImageChange} />
               </div>
-
-              <input
-                type="text"
-                placeholder="Nombre (Ej. Espuma limpiadora)"
-                required
-                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+              <input type="text" placeholder="Nombre (Ej. Espuma limpiadora)" required className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
               <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="Marca"
-                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Modelo"
-                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                />
+                <input type="text" placeholder="Marca" className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} />
+                <input type="text" placeholder="Modelo" className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex gap-1">
-                  <input
-                    type="text"
-                    placeholder="No. Serie original"
-                    className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={formData.serial}
-                    onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setScannerMode("serial")}
-                    className="bg-gray-800 text-white px-3 rounded hover:bg-gray-900 transition-colors"
-                    title="Escanear Código de Barras"
-                  >
-                    <QRIcon />
-                  </button>
+                  <input type="text" placeholder="No. Serie original" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.serial} onChange={(e) => setFormData({ ...formData, serial: e.target.value })} />
+                  <button type="button" onClick={() => setScannerMode("serial")} className="bg-gray-800 text-white px-3 rounded hover:bg-gray-900 transition-colors" title="Escanear Código de Barras"><QRIcon /></button>
                 </div>
-                <input
-                  type="number"
-                  placeholder="Stock Inicial"
-                  required
-                  className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                />
+                <input type="number" placeholder="Stock Inicial" required className="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} />
               </div>
-              <input
-                type="text"
-                placeholder="Ubicación (Ej. Estante A2)"
-                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              />
-              <textarea
-                placeholder="Observaciones"
-                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                value={formData.observations}
-                onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-              />
+              <input type="text" placeholder="Ubicación (Ej. Estante A2)" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
+              <textarea placeholder="Observaciones" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.observations} onChange={(e) => setFormData({ ...formData, observations: e.target.value })} />
               <div className="flex gap-2 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 bg-gray-200 p-2 rounded font-bold hover:bg-gray-300 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition-colors shadow"
-                >
-                  Guardar
-                </button>
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-200 p-2 rounded font-bold hover:bg-gray-300 transition-colors">Cancelar</button>
+                <button type="submit" className="flex-1 bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition-colors shadow">Guardar</button>
               </div>
             </form>
           </div>
