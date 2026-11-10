@@ -27,6 +27,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// 🔴 LOGO 🔴
 const LOGO_URL = "/logo.png"; 
 
 // --- ÍCONOS SVG ---
@@ -175,7 +176,7 @@ export default function App() {
     setActionData({ qty: 1, user: "", reason: "" });
   };
 
-  // --- ETIQUETA TÉRMICA 2x1 (CÓDIGO BLINDADO PARA EVITAR CORTES Y CAMBIOS DE TAMAÑO) ---
+  // --- ETIQUETA TÉRMICA CON CENTRADO FORZADO ABSOLUTO ---
   const printLabel = (p: any) => {
     const printWindow = window.open("", "_blank", "width=400,height=300");
     if (!printWindow) return;
@@ -185,37 +186,38 @@ export default function App() {
         <head>
           <title>${p.id}</title>
           <style>
-            /* Forzamos el tamaño exacto en milímetros (50x25mm = 2x1 pulgadas) y quitamos todo margen del navegador */
-            @page { size: 50mm 25mm; margin: 0mm !important; padding: 0mm !important; }
+            @page { size: 50mm 25mm; margin: 0 !important; }
             html, body {
               margin: 0 !important;
               padding: 0 !important;
-              width: 50mm !important;
-              height: 25mm !important;
-              font-family: Arial, sans-serif;
-              background: white;
-              overflow: hidden; /* Evita que se cree una segunda página en blanco */
-              box-sizing: border-box;
-            }
-            .label-container {
               width: 50mm;
               height: 25mm;
+              background: white;
+              /* Aquí forzamos que el contenido esté 100% al centro */
               display: flex;
-              padding: 2mm; /* Margen interno seguro para que no se corte el texto */
-              box-sizing: border-box;
+              justify-content: center;
               align-items: center;
               overflow: hidden;
             }
-            .qr-section { width: 35%; display: flex; align-items: center; justify-content: center; }
-            .qr-section img { width: 100%; height: auto; max-height: 21mm; object-fit: contain; }
-            .text-section { width: 65%; padding-left: 2mm; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
-            .header { font-size: 7px; font-weight: bold; border-bottom: 1px solid black; margin-bottom: 1px; padding-bottom: 1px; }
+            .label-wrapper {
+              /* La caja interior mide 48x23mm (dejamos 1 milímetro por lado de margen de seguridad automático) */
+              width: 48mm;
+              height: 23mm;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              box-sizing: border-box;
+            }
+            .qr-section { width: 36%; display: flex; justify-content: center; align-items: center; }
+            .qr-section img { width: 100%; max-height: 22mm; object-fit: contain; }
+            .text-section { width: 62%; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding-left: 1mm;}
+            .header { font-size: 7px; font-weight: bold; border-bottom: 1px solid black; margin-bottom: 1px; padding-bottom: 1px; text-align: center; }
             .title { font-size: 10px; font-weight: bold; margin-bottom: 1px; line-height: 1.1; max-height: 22px; overflow: hidden; }
             .detail { font-size: 8px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           </style>
         </head>
         <body>
-          <div class="label-container">
+          <div class="label-wrapper">
             <div class="qr-section"><img src="${qrUrl}" /></div>
             <div class="text-section">
               <div class="header">INVENTARIO MONCADA</div>
@@ -357,14 +359,7 @@ export default function App() {
       {role === "admin" && (
         <div className="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3">
           <button onClick={() => { setFormData({ docId: "", id: "", name: "", brand: "", model: "", serial: "", location: "", stock: 0, observations: "", image: "" }); setShowModal(true); }} className="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-blue-700 transition-colors text-center">+ Nuevo Producto</button>
-          
-          <button onClick={() => { 
-            setProjectSheetData({ project: "", location: "", date: new Date().toISOString().split("T")[0] });
-            setShowProjectModal(true); 
-          }} className="flex-1 sm:flex-none bg-indigo-600 text-white px-4 py-2 rounded shadow flex items-center justify-center gap-2 font-bold hover:bg-indigo-700 transition-colors">
-            <DocIcon /> Vale Salida
-          </button>
-
+          <button onClick={() => { setProjectSheetData({ project: "", location: "", date: new Date().toISOString().split("T")[0] }); setShowProjectModal(true); }} className="flex-1 sm:flex-none bg-indigo-600 text-white px-4 py-2 rounded shadow flex items-center justify-center gap-2 font-bold hover:bg-indigo-700 transition-colors"><DocIcon /> Vale Salida</button>
           <button onClick={() => setShowReportModal(true)} className="flex-1 sm:flex-none bg-purple-600 text-white px-4 py-2 rounded shadow flex items-center justify-center gap-2 font-bold hover:bg-purple-700 transition-colors"><ChartIcon /> Reporte del Mes</button>
         </div>
       )}
